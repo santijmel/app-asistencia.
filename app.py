@@ -6,7 +6,6 @@ import unicodedata
 # --- CONFIGURACIÓN ---
 st.set_page_config(page_title="Asistencia", page_icon="🏫", layout="wide")
 
-
 # PEGA ACÁ TU URL LARGÚISIMA DE APPS SCRIPT (Entre las comillas)
 URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbxfCpyXfNVSrDyNaH8xLz2Y4V3lcpq6tPvnQXKrBTnYIFerLY-4JhqWDJyyMymec3tr6g/exec"
 
@@ -59,10 +58,9 @@ st.title("Control asistencia 1er año")
 col_filtro1, col_filtro2, col_filtro3 = st.columns(3)
 
 with col_filtro1:
-    # 1. Agregamos el formato DD/MM/YYYY al calendario visual
     fecha_seleccionada = st.date_input("Día", format="DD/MM/YYYY")
-    fecha_str = fecha_seleccionada.strftime("%Y-%m-%d") # Motor interno de búsqueda
-    fecha_visual = fecha_seleccionada.strftime("%d/%m/%Y") # Texto para mostrar en pantalla
+    fecha_str = fecha_seleccionada.strftime("%Y-%m-%d") 
+    fecha_visual = fecha_seleccionada.strftime("%d/%m/%Y") 
 
 with col_filtro2:
     lista_materias = [col for col in df_alumnos.columns if col not in ['Alumno', 'Alumno_Licuado']]
@@ -92,8 +90,12 @@ padron_ideal['Estado'] = padron_ideal['Alumno_Licuado'].apply(
     lambda x: "Ausente" if x in alumnos_con_falta else "Presente"
 )
 
-df_presentes = padron_ideal[padron_ideal['Estado'] == "Presente"]
-df_ausentes = padron_ideal[padron_ideal['Estado'] == "Ausente"]
+df_presentes = padron_ideal[padron_ideal['Estado'] == "Presente"].copy()
+df_ausentes = padron_ideal[padron_ideal['Estado'] == "Ausente"].copy()
+
+# Renombramos las columnas solo para la visualización
+df_presentes.rename(columns={'Alumno': 'Estudiantes presentes'}, inplace=True)
+df_ausentes.rename(columns={'Alumno': 'Estudiantes ausentes'}, inplace=True)
 
 # 2. Mostramos el subtítulo claro con la fecha invertida (DD/MM/YYYY)
 st.subheader(f"{materia_seleccionada} - {grupo_seleccionado} ({fecha_visual})")
@@ -110,6 +112,6 @@ st.write("")
 # --- LISTAS ---
 col_list1, col_list2 = st.columns(2)
 with col_list1:
-    st.dataframe(df_presentes[['Alumno']], use_container_width=True, hide_index=True)
+    st.dataframe(df_presentes[['Estudiantes presentes']], use_container_width=True, hide_index=True)
 with col_list2:
-    st.dataframe(df_ausentes[['Alumno']], use_container_width=True, hide_index=True)
+    st.dataframe(df_ausentes[['Estudiantes ausentes']], use_container_width=True, hide_index=True)
