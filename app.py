@@ -7,7 +7,7 @@ import unicodedata
 st.set_page_config(page_title="Control Asistencia", layout="wide")
 
 # PEGA ACÁ TU URL LARGÚISIMA DE APPS SCRIPT (Entre las comillas)
-URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbxfCpyXfNVSrDyNaH8xLz2Y4V3lcpq6tPvnQXKrBTnYIFerLY-4JhqWDJyyMymec3tr6g/execA"
+URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbxfCpyXfNVSrDyNaH8xLz2Y4V3lcpq6tPvnQXKrBTnYIFerLY-4JhqWDJyyMymec3tr6g/exec"
 
 def licuadora(texto):
     if pd.isna(texto): return ""
