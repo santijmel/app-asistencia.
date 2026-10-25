@@ -2,11 +2,11 @@ import streamlit as st
 import pandas as pd
 import requests
 import unicodedata
+from datetime import datetime, timedelta, timezone
 
 # --- CONFIGURACIÓN ---
 st.set_page_config(page_title="Asistencia", page_icon="🏫", layout="wide")
 
-# PEGA ACÁ TU URL LARGÚISIMA DE APPS SCRIPT (Entre las comillas)
 URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbxfCpyXfNVSrDyNaH8xLz2Y4V3lcpq6tPvnQXKrBTnYIFerLY-4JhqWDJyyMymec3tr6g/exec"
 
 def licuadora(texto):
@@ -14,6 +14,8 @@ def licuadora(texto):
     texto = str(texto).strip().upper()
     return ''.join(c for c in unicodedata.normalize('NFD', texto) if unicodedata.category(c) != 'Mn')
 
+# Guardamos los datos en el servidor por 30 minutos (1800 segundos)
+@st.cache_data(ttl=1800)
 def cargar_datos_seguros():
     respuesta = requests.get(URL_APPS_SCRIPT)
     datos = respuesta.json()
@@ -33,27 +35,31 @@ def cargar_datos_seguros():
     df_traductor['Original_Licuada'] = df_traductor['Original'].apply(licuadora)
     df_traductor['Agrupada_Licuada'] = df_traductor['Agrupada'].apply(licuadora)
     
-    return df_alumnos, df_historico, df_traductor
+    # Capturamos la hora exacta de la descarga (Hora Argentina UTC-3)
+    tz_ba = timezone(timedelta(hours=-3))
+    hora_actual = datetime.now(tz_ba).strftime("%H:%M:%S")
+    
+    return df_alumnos, df_historico, df_traductor, hora_actual
 
-# --- LÓGICA DE MEMORIA (SESSION STATE) ---
-if 'datos_cargados' not in st.session_state:
-    try:
-        with st.spinner('Cargando base de datos segura del colegio...'):
-            a, h, t = cargar_datos_seguros()
-            st.session_state.df_alumnos = a
-            st.session_state.df_historico = h
-            st.session_state.df_traductor = t
-            st.session_state.datos_cargados = True
-    except Exception as e:
-        st.error(f"Error de conexión con Apps Script. Revisá que la URL sea la correcta.")
-        st.stop()
+# --- CARGA DE DATOS ---
+try:
+    with st.spinner('Conectando de forma segura al colegio...'):
+        df_alumnos, df_historico, df_traductor, ultima_act = cargar_datos_seguros()
+except Exception as e:
+    st.error("Error de conexión con Apps Script. Revisá que la URL sea la correcta.")
+    st.stop()
 
-df_alumnos = st.session_state.df_alumnos
-df_historico = st.session_state.df_historico
-df_traductor = st.session_state.df_traductor
+# --- BOTÓN DE SINCRONIZACIÓN MANUAL ---
+st.sidebar.title("Opciones ⚙️")
+st.sidebar.info(f"⏱️ **Última lectura:** {ultima_act}")
+st.sidebar.write("La base se actualiza sola cada 30 min. Para forzar una lectura inmediata desde el Drive, tocá abajo:")
+if st.sidebar.button("🔄 Sincronizar con Drive", type="primary"):
+    st.cache_data.clear()
+    st.rerun()
 
 # --- INTERFAZ PRINCIPAL ---
 st.title("Control asistencia 1er año")
+st.caption(f"Última sincronización con Google Sheets: {ultima_act}")
 
 col_filtro1, col_filtro2, col_filtro3 = st.columns(3)
 
@@ -93,11 +99,9 @@ padron_ideal['Estado'] = padron_ideal['Alumno_Licuado'].apply(
 df_presentes = padron_ideal[padron_ideal['Estado'] == "Presente"].copy()
 df_ausentes = padron_ideal[padron_ideal['Estado'] == "Ausente"].copy()
 
-# Renombramos las columnas solo para la visualización
 df_presentes.rename(columns={'Alumno': 'Estudiantes presentes'}, inplace=True)
 df_ausentes.rename(columns={'Alumno': 'Estudiantes ausentes'}, inplace=True)
 
-# 2. Mostramos el subtítulo claro con la fecha invertida (DD/MM/YYYY)
 st.subheader(f"{materia_seleccionada} - {grupo_seleccionado} ({fecha_visual})")
 
 # --- MARCADORES CON TOTALES ---
