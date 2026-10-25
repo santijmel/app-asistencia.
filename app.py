@@ -4,7 +4,8 @@ import requests
 import unicodedata
 
 # --- CONFIGURACIÓN ---
-st.set_page_config(page_title="Control Asistencia", layout="wide")
+st.set_page_config(page_title="Asistencia", page_icon="🏫", layout="wide")
+
 
 # PEGA ACÁ TU URL LARGÚISIMA DE APPS SCRIPT (Entre las comillas)
 URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbxfCpyXfNVSrDyNaH8xLz2Y4V3lcpq6tPvnQXKrBTnYIFerLY-4JhqWDJyyMymec3tr6g/exec"
