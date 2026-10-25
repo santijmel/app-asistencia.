@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import requests
 import unicodedata
+import time
 from datetime import datetime, timedelta, timezone
 
 # --- CONFIGURACIÓN ---
@@ -17,36 +18,47 @@ def licuadora(texto):
 # Guardamos los datos en el servidor por 30 minutos (1800 segundos)
 @st.cache_data(ttl=1800)
 def cargar_datos_seguros():
-    respuesta = requests.get(URL_APPS_SCRIPT)
-    datos = respuesta.json()
-    
-    df_alumnos = pd.DataFrame(datos["alumnos"][1:], columns=datos["alumnos"][0])
-    df_alumnos.rename(columns={df_alumnos.columns[0]: 'Alumno'}, inplace=True)
-    df_alumnos['Alumno_Licuado'] = df_alumnos['Alumno'].apply(licuadora)
-    
-    columnas_historico = ["Fecha", "Fecha_Duplicada", "Alumno", "Materia", "Bloque", "Codigo", "Extra1", "Extra2"]
-    df_historico = pd.DataFrame(datos["historico"], columns=columnas_historico)
-    df_historico['Alumno_Licuado'] = df_historico['Alumno'].apply(licuadora)
-    df_historico['Materia_Licuada'] = df_historico['Materia'].apply(licuadora)
-    df_historico['Codigo'] = df_historico['Codigo'].fillna("")
-    df_historico['Fecha'] = pd.to_datetime(df_historico['Fecha'], errors='coerce').dt.strftime('%Y-%m-%d')
-    
-    df_traductor = pd.DataFrame(datos["traductor"][1:], columns=["Original", "Agrupada"])
-    df_traductor['Original_Licuada'] = df_traductor['Original'].apply(licuadora)
-    df_traductor['Agrupada_Licuada'] = df_traductor['Agrupada'].apply(licuadora)
-    
-    # Capturamos la hora exacta de la descarga (Hora Argentina UTC-3)
-    tz_ba = timezone(timedelta(hours=-3))
-    hora_actual = datetime.now(tz_ba).strftime("%H:%M:%S")
-    
-    return df_alumnos, df_historico, df_traductor, hora_actual
+    # Sistema Anti-Tropiezos: Intenta hasta 3 veces si Google falla
+    for intento in range(3):
+        try:
+            # timeout=15 evita que la app se quede colgada infinitamente esperando a Google
+            respuesta = requests.get(URL_APPS_SCRIPT, timeout=15)
+            
+            # Verificamos que Google haya respondido bien antes de procesar
+            if respuesta.status_code == 200:
+                datos = respuesta.json()
+                
+                df_alumnos = pd.DataFrame(datos["alumnos"][1:], columns=datos["alumnos"][0])
+                df_alumnos.rename(columns={df_alumnos.columns[0]: 'Alumno'}, inplace=True)
+                df_alumnos['Alumno_Licuado'] = df_alumnos['Alumno'].apply(licuadora)
+                
+                columnas_historico = ["Fecha", "Fecha_Duplicada", "Alumno", "Materia", "Bloque", "Codigo", "Extra1", "Extra2"]
+                df_historico = pd.DataFrame(datos["historico"], columns=columnas_historico)
+                df_historico['Alumno_Licuado'] = df_historico['Alumno'].apply(licuadora)
+                df_historico['Materia_Licuada'] = df_historico['Materia'].apply(licuadora)
+                df_historico['Codigo'] = df_historico['Codigo'].fillna("")
+                df_historico['Fecha'] = pd.to_datetime(df_historico['Fecha'], errors='coerce').dt.strftime('%Y-%m-%d')
+                
+                df_traductor = pd.DataFrame(datos["traductor"][1:], columns=["Original", "Agrupada"])
+                df_traductor['Original_Licuada'] = df_traductor['Original'].apply(licuadora)
+                df_traductor['Agrupada_Licuada'] = df_traductor['Agrupada'].apply(licuadora)
+                
+                tz_ba = timezone(timedelta(hours=-3))
+                hora_actual = datetime.now(tz_ba).strftime("%H:%M:%S")
+                
+                return df_alumnos, df_historico, df_traductor, hora_actual
+                
+        except Exception:
+            if intento == 2: # Si ya falló 3 veces, nos rendimos
+                raise Exception("Google no responde después de 3 intentos.")
+            time.sleep(1.5) # Espera 1.5 segundos antes de volver a intentar
 
 # --- CARGA DE DATOS ---
 try:
     with st.spinner('Conectando de forma segura al colegio...'):
         df_alumnos, df_historico, df_traductor, ultima_act = cargar_datos_seguros()
 except Exception as e:
-    st.error("Error de conexión con Apps Script. Revisá que la URL sea la correcta.")
+    st.error("Los servidores de Google están saturados en este momento. Por favor, recargá la página en un minuto.")
     st.stop()
 
 # --- BOTÓN DE SINCRONIZACIÓN MANUAL ---
