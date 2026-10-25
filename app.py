@@ -7,7 +7,7 @@ import unicodedata
 st.set_page_config(page_title="Control Asistencia", layout="wide")
 
 # PEGA ACÁ TU URL LARGÚISIMA DE APPS SCRIPT (Entre las comillas)
-URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbxfCpyXfNVSrDyNaH8xLz2Y4V3lcpq6tPvnQXKrBTnYIFerLY-4JhqWDJyyMymec3tr6g/exec"
+URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbxfCpyXfNVSrDyNaH8xLz2Y4V3lcpq6tPvnQXKrBTnYIFerLY-4JhqWDJyyMymec3tr6g/execA"
 
 def licuadora(texto):
     if pd.isna(texto): return ""
@@ -58,8 +58,10 @@ st.title("Control asistencia 1er año")
 col_filtro1, col_filtro2, col_filtro3 = st.columns(3)
 
 with col_filtro1:
-    fecha_seleccionada = st.date_input("Día")
-    fecha_str = fecha_seleccionada.strftime("%Y-%m-%d")
+    # 1. Agregamos el formato DD/MM/YYYY al calendario visual
+    fecha_seleccionada = st.date_input("Día", format="DD/MM/YYYY")
+    fecha_str = fecha_seleccionada.strftime("%Y-%m-%d") # Motor interno de búsqueda
+    fecha_visual = fecha_seleccionada.strftime("%d/%m/%Y") # Texto para mostrar en pantalla
 
 with col_filtro2:
     lista_materias = [col for col in df_alumnos.columns if col not in ['Alumno', 'Alumno_Licuado']]
@@ -92,6 +94,9 @@ padron_ideal['Estado'] = padron_ideal['Alumno_Licuado'].apply(
 df_presentes = padron_ideal[padron_ideal['Estado'] == "Presente"]
 df_ausentes = padron_ideal[padron_ideal['Estado'] == "Ausente"]
 
+# 2. Mostramos el subtítulo claro con la fecha invertida (DD/MM/YYYY)
+st.subheader(f"{materia_seleccionada} - {grupo_seleccionado} ({fecha_visual})")
+
 # --- MARCADORES CON TOTALES ---
 col_tot1, col_tot2 = st.columns(2)
 with col_tot1:
@@ -100,13 +105,6 @@ with col_tot2:
     st.error(f"### Total de ausentes: {len(df_ausentes)}")
 
 st.write("") 
-
-# --- LISTAS ---
-col_list1, col_list2 = st.columns(2)
-with col_list1:
-    st.dataframe(df_presentes[['Alumno']], use_container_width=True, hide_index=True)
-with col_list2:
-    st.dataframe(df_ausentes[['Alumno']], use_container_width=True, hide_index=True)
 
 # --- LISTAS ---
 col_list1, col_list2 = st.columns(2)
