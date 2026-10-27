@@ -11,9 +11,9 @@ st.set_page_config(page_title="Asistencia", page_icon="🏫", layout="wide")
 # --- OCULTAR BASURA VISUAL DE STREAMLIT ---
 ocultar_menu_estilo = """
     <style>
-    #MainMenu {visibility: hidden;} /* Oculta los 3 puntitos */
-    footer {visibility: hidden;} /* Oculta el 'Made with Streamlit' */
-    [data-testid="stToolbar"] {display: none;} /* Oculta el botón de GitHub/Deploy */
+    #MainMenu {visibility: hidden;} 
+    footer {visibility: hidden;} 
+    [data-testid="stToolbar"] {display: none;} 
     </style>
 """
 st.markdown(ocultar_menu_estilo, unsafe_allow_html=True)
@@ -25,10 +25,8 @@ def licuadora(texto):
     texto = str(texto).strip().upper()
     return ''.join(c for c in unicodedata.normalize('NFD', texto) if unicodedata.category(c) != 'Mn')
 
-# Guardamos los datos en el servidor por 30 minutos (1800 segundos)
 @st.cache_data(ttl=1800)
 def cargar_datos_seguros():
-    # Sistema Anti-Tropiezos: Intenta hasta 3 veces si Google falla
     for intento in range(3):
         try:
             respuesta = requests.get(URL_APPS_SCRIPT, timeout=15)
@@ -40,11 +38,14 @@ def cargar_datos_seguros():
                 df_alumnos.rename(columns={df_alumnos.columns[0]: 'Alumno'}, inplace=True)
                 df_alumnos['Alumno_Licuado'] = df_alumnos['Alumno'].apply(licuadora)
                 
-                columnas_historico = ["Fecha", "Fecha_Duplicada", "Alumno", "Materia", "Bloque", "Codigo", "Extra1", "Extra2"]
+                # CORRECCIÓN: Columna A ahora es Fecha_Carga, Columna B es Fecha (la de la inasistencia)
+                columnas_historico = ["Fecha_Carga", "Fecha", "Alumno", "Materia", "Bloque", "Codigo", "Extra1", "Extra2"]
                 df_historico = pd.DataFrame(datos["historico"], columns=columnas_historico)
                 df_historico['Alumno_Licuado'] = df_historico['Alumno'].apply(licuadora)
                 df_historico['Materia_Licuada'] = df_historico['Materia'].apply(licuadora)
                 df_historico['Codigo'] = df_historico['Codigo'].fillna("")
+                
+                # Ahora Python formatea y usa correctamente la Columna B
                 df_historico['Fecha'] = pd.to_datetime(df_historico['Fecha'], errors='coerce').dt.strftime('%Y-%m-%d')
                 
                 df_traductor = pd.DataFrame(datos["traductor"][1:], columns=["Original", "Agrupada"])
