@@ -8,6 +8,16 @@ from datetime import datetime, timedelta, timezone
 # --- CONFIGURACIÓN ---
 st.set_page_config(page_title="Asistencia", page_icon="🏫", layout="wide")
 
+# --- OCULTAR BASURA VISUAL DE STREAMLIT ---
+ocultar_menu_estilo = """
+    <style>
+    #MainMenu {visibility: hidden;} /* Oculta los 3 puntitos */
+    footer {visibility: hidden;} /* Oculta el 'Made with Streamlit' */
+    [data-testid="stToolbar"] {display: none;} /* Oculta el botón de GitHub/Deploy */
+    </style>
+"""
+st.markdown(ocultar_menu_estilo, unsafe_allow_html=True)
+
 URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbxfCpyXfNVSrDyNaH8xLz2Y4V3lcpq6tPvnQXKrBTnYIFerLY-4JhqWDJyyMymec3tr6g/exec"
 
 def licuadora(texto):
@@ -21,10 +31,8 @@ def cargar_datos_seguros():
     # Sistema Anti-Tropiezos: Intenta hasta 3 veces si Google falla
     for intento in range(3):
         try:
-            # timeout=15 evita que la app se quede colgada infinitamente esperando a Google
             respuesta = requests.get(URL_APPS_SCRIPT, timeout=15)
             
-            # Verificamos que Google haya respondido bien antes de procesar
             if respuesta.status_code == 200:
                 datos = respuesta.json()
                 
@@ -49,9 +57,9 @@ def cargar_datos_seguros():
                 return df_alumnos, df_historico, df_traductor, hora_actual
                 
         except Exception:
-            if intento == 2: # Si ya falló 3 veces, nos rendimos
+            if intento == 2:
                 raise Exception("Google no responde después de 3 intentos.")
-            time.sleep(1.5) # Espera 1.5 segundos antes de volver a intentar
+            time.sleep(1.5)
 
 # --- CARGA DE DATOS ---
 try:
